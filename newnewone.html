@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Arian — Ad Requests</title>
+  <meta name="description" content="Minimal multi-view site with animated scroll flow, subtle patterns, clean ad request form, and an about page with analytics and gallery."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --brand:#ff7a00;
+      --ink:#0b0c10;
+      --paper:#f5f6f8;
+      --muted:#8a93a5;
+      --blue:#7aa6ff;
+      --card:#ffffff;
+      --edge:#e7eaf1;
+      --radius:18px; --shadow:0 12px 30px rgba(15,23,42,.08);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:linear-gradient(180deg,#fafbff,#f4f6fb);color:#0f1424;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    a{color:var(--brand);text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    /* Layout */
+    .wrap{max-width:1100px;margin:0 auto;padding:24px}
+    header{position:sticky;top:0;background:rgba(255,255,255,.75);backdrop-filter:saturate(140%) blur(8px);border-bottom:1px solid var(--edge);z-index:60}
+    .nav{display:flex;align-items:center;justify-content:space-between}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.2px}
+    .logo{width:28px;height:28px;border-radius:9px;background:conic-gradient(from 210deg,var(--brand),#ffd2a8 60%, var(--blue));}
+    .seg{display:flex;gap:10px;flex-wrap:wrap}
+
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 16px;border-radius:14px;border:1px solid var(--edge);background:#fff;color:#0f1424;font-weight:700;cursor:pointer;transition:.2s}
+    .btn:hover{transform:translateY(-1px);box-shadow:var(--shadow)}
+    .btn.primary{background:var(--brand);color:white;border-color:transparent}
+    .btn.pill{border-radius:999px}
+
+    /* Fixed subtle background patterns (depth) — BOLDER + LARGER */
+    .bg-pattern{position:fixed;inset:auto auto 8% -120px;width:420px;height:420px;pointer-events:none;opacity:0;filter:blur(0.2px);transition:opacity .8s ease .3s;z-index:0}
+    .bg-pattern.right{left:auto;right:-120px;bottom:22%}
+    .bg-pattern.on{opacity:.5}
+    .bg-pattern svg{width:100%;height:100%;opacity:.95}
+
+    /* Full-width across pattern */
+    .bg-pattern.full{
+      position:fixed;
+      top:40%;
+      left:0;
+      width:100%;
+      height:200px;
+      pointer-events:none;
+      opacity:0;
+      transition:opacity .8s ease .3s;
+      z-index:0;
+    }
+    .bg-pattern.full.on{ opacity:.4; }
+    .bg-pattern.full svg{ width:100%; height:100%; }
+
+    /* Views */
+    .view{display:none}
+    .view.active{display:block}
+
+    /* HOME minimal */
+    #home .center{min-height:82vh;display:grid;place-items:center;text-align:center;position:relative}
+    .hero-title{font-size:56px;line-height:1.05;margin:10px 0 8px;font-weight:900}
+    .hero-sub{color:var(--muted);margin:0 0 22px}
+    .chip-flow{position:absolute;left:50%;bottom:28px;transform:translateX(-50%);display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:999px;background:#fff;border:1px solid var(--edge);box-shadow:var(--shadow);cursor:pointer}
+    .chip-flow b{color:var(--brand)}
+    .chev{width:16px;height:16px;border-left:2px solid var(--brand);border-bottom:2px solid var(--brand);transform:rotate(-45deg)}
+
+    /* Hero blur overlay when flow is in view */
+    .hero-glass{position:fixed;inset:72px 0 auto 0;height:160px;pointer-events:none;backdrop-filter:blur(0px);transition:backdrop-filter .35s ease, opacity .35s;opacity:0}
+    body.flowing .hero-glass{backdrop-filter:blur(6px);opacity:1}
+
+    /* FLOW (scroll sequence) */
+    #flow{position:relative}
+    .flow-wrap{position:relative}
+    .panel{min-height:100vh;display:grid;place-items:center;padding:24px;position:relative}
+    .panel-inner{max-width:980px;display:grid;grid-template-columns:1.1fr .4fr;gap:22px;align-items:center}
+    .panel .txt h2{margin:0 0 10px;font-size:42px;line-height:1.1}
+    .panel .txt p{margin:0;color:#5a6478;font-size:16px}
+    .panel .icon{width:94px;height:94px;border-radius:22px;display:grid;place-items:center;border:1px solid var(--edge);background:#fff;box-shadow:var(--shadow)}
+    .panel.orange{background:linear-gradient(180deg,#ff7a00,#ff9a3a);color:#fff}
+    .panel.orange .txt p,.panel.orange .txt h2{color:#fff}
+    .panel.orange .icon{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.25)}
+
+    /* Corner filler patterns per panel */
+    .panel .filler{position:absolute;right:6%;bottom:8%;width:220px;opacity:.12;transition:opacity .6s ease}
+    .panel.orange .filler{opacity:.2}
+
+    /* Continuous arrow path */
+    .flow-path{position:absolute;inset:0;pointer-events:none;z-index:0}
+    .flow-content{position:relative;z-index:1}
+    svg path#route{stroke:var(--brand);stroke-width:6;fill:none;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 2px 0 rgba(0,0,0,.05));stroke-dasharray:4000;stroke-dashoffset:4000;transition:stroke .2s}
+    body.on-orange svg path#route{stroke:#ffffff}
+    svg defs marker#arrowHead polygon{fill:currentColor}
+
+    /* About */
+    .about-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+    @media (max-width: 900px){.about-grid{grid-template-columns:1fr}.panel-inner{grid-template-columns:1fr}}
+    .gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    .ph{aspect-ratio:1/1;background:linear-gradient(135deg,#ffe9d6,#f2f6ff);border:1px dashed #cfd6e6;border-radius:14px;display:grid;place-items:center;color:#7a879a}
+    .upload{display:flex;flex-direction:column;gap:8px}
+
+    /* Form page */
+    .card{background:var(--card);border:1px solid var(--edge);border-radius:var(--radius);box-shadow:var(--shadow)}
+    .pad{padding:22px}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media (max-width: 860px){.form-grid{grid-template-columns:1fr}}
+    label{font-weight:600;font-size:13px;margin-bottom:6px;display:block}
+    .input, textarea, select{width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--edge);background:#fff}
+    textarea{min-height:120px;resize:vertical}
+    .group{display:grid;gap:10px}
+    .hint{font-size:12px;color:#6a7388}
+    .seg-choices{display:flex;gap:10px;flex-wrap:wrap}
+    .seg-choices .pill{position:relative}
+    .seg-choices input{position:absolute;opacity:0;pointer-events:none}
+    .seg-choices label{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border:1px solid var(--edge);border-radius:999px;background:#fff;cursor:pointer}
+    .seg-choices input:checked+label{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+
+    /* Reveal utility */
+    .reveal{opacity:0;transform:translateY(10px);transition:.5s ease}
+    .reveal.on{opacity:1;transform:none}
+
+    footer{margin:28px 0;color:#7a869a;display:flex;justify-content:space-between;align-items:center}
+
+    /* Atom GIF bottom-right */
+    .atom-gif{
+      position:fixed;
+      right:20px;
+      bottom:20px;
+      width:84px;     /* tweak as needed */
+      height:auto;
+      z-index:1000;   /* above everything */
+      pointer-events:none; /* don’t block clicks */
+      image-rendering:auto;
+    }
+    @media (max-width: 560px){
+      .atom-gif{ width:64px; right:12px; bottom:12px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <div class="brand"><div class="logo" aria-hidden="true"></div><span>Arian</span></div>
+      <nav class="seg" aria-label="primary">
+        <button class="btn pill" data-route="#/home">Home</button>
+        <button class="btn pill" data-route="#/about">About</button>
+        <button class="btn pill primary" data-route="#/request">Ad Request</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- subtle blur layer when flow is in view -->
+  <div class="hero-glass"></div>
+
+  <!-- HOME -->
+  <main id="home" class="view active">
+    <!-- fixed background patterns for depth — UPDATED -->
+    <div class="bg-pattern left" id="bgL">
+      <svg viewBox="0 0 260 260" fill="none">
+        <defs>
+          <linearGradient id="gl" x1="0" y1="0" x2="1" y2="1">
+            <stop stop-color="#ffb380"/>
+            <stop offset="1" stop-color="#7aa6ff"/>
+          </linearGradient>
+        </defs>
+        <path d="M14 26 Q 78 -2 142 26 T 246 26" stroke="url(#gl)" stroke-width="3.5" opacity=".9"/>
+        <path d="M14 86 Q 78 58 142 86 T 246 86" stroke="url(#gl)" stroke-width="3.5" opacity=".78"/>
+        <path d="M14 146 Q 78 118 142 146 T 246 146" stroke="url(#gl)" stroke-width="3.5" opacity=".68"/>
+        <path d="M14 206 Q 78 178 142 206 T 246 206" stroke="url(#gl)" stroke-width="3.5" opacity=".58"/>
+      </svg>
+    </div>
+
+    <div class="bg-pattern right" id="bgR">
+      <svg viewBox="0 0 260 260" fill="none">
+        <circle cx="88" cy="88" r="78" stroke="#ff7a00" stroke-opacity=".8" stroke-width="3.5"/>
+        <circle cx="198" cy="162" r="46" stroke="#7aa6ff" stroke-opacity=".8" stroke-width="3.5"/>
+        <path d="M130 118 C160 110 182 130 198 162" stroke="var(--ink)" stroke-opacity=".18" stroke-width="2" fill="none"/>
+      </svg>
+    </div>
+
+    <!-- NEW: full-width across background pattern -->
+    <div class="bg-pattern full" id="bgFull">
+      <svg viewBox="0 0 1600 200" preserveAspectRatio="none" fill="none">
+        <defs>
+          <linearGradient id="fullGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop stop-color="#ffb380" stop-opacity="0.6"/>
+            <stop offset="1" stop-color="#7aa6ff" stop-opacity="0.6"/>
+          </linearGradient>
+        </defs>
+        <path d="M0 100 Q 200 40 400 100 T 800 100 T 1200 100 T 1600 100" stroke="url(#fullGrad)" stroke-width="3" opacity="0.4" />
+        <path d="M0 140 Q 200 80 400 140 T 800 140 T 1200 140 T 1600 140" stroke="url(#fullGrad)" stroke-width="2" opacity="0.3" />
+      </svg>
+    </div>
+
+    <div class="wrap center">
+      <div>
+        <h1 class="hero-title">ARIAN</h1>
+        <p class="hero-sub">Scientific content creator • Data-driven storytelling</p>
+        <div style="display:flex;gap:12px;justify-content:center">
+          <button class="btn primary pill" data-route="#/request">Ad Request</button>
+          <button class="btn pill" data-route="#/about">About</button>
+        </div>
+        <div class="chip-flow" id="chipFlow" title="See how it works"><b>How it works</b><div class="chev"></div></div>
+      </div>
+    </div>
+
+    <!-- Flow -->
+    <section id="flow" class="flow-wrap">
+      <svg class="flow-path" preserveAspectRatio="none" viewBox="0 0 1100 3000" aria-hidden="true">
+        <defs>
+          <marker id="arrowHead" markerWidth="16" markerHeight="16" refX="8" refY="8" orient="auto-start-reverse">
+            <polygon points="0,0 16,8 0,16" />
+          </marker>
+        </defs>
+        <path id="route" d="M200 80 C 500 150, 600 120, 850 220
+                             S 400 520, 700 650
+                             S 900 900, 300 1050
+                             S 600 1350, 900 1500
+                             S 500 1800, 250 1950
+                             S 700 2250, 850 2400
+                             S 600 2700, 400 2850" marker-end="url(#arrowHead)" />
+      </svg>
+
+      <div class="flow-content">
+        <section class="panel" style="background:#fff">
+          <div class="panel-inner">
+            <div class="txt">
+              <h2>Step 1 — Send your details</h2>
+              <p>Provide your contact info, brand, and a short goal statement. Add a brief if you have one — clarity beats length.</p>
+            </div>
+            <div class="icon" aria-hidden="true">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M3 11l18-8-8 18-2-8-8-2z" stroke="#ff7a00" stroke-width="2" stroke-linejoin="round"/></svg>
+            </div>
+            <svg class="filler" viewBox="0 0 200 120" fill="none"><path d="M10 60 C 40 10, 160 10, 190 60 S 160 110, 100 60" stroke="#0f1424" stroke-opacity=".25" stroke-width="2"/></svg>
+          </div>
+        </section>
+
+        <section class="panel orange">
+          <div class="panel-inner">
+            <div class="txt">
+              <h2>Step 2 — Review</h2>
+              <p>I weigh audience fit, scientific accuracy, timelines, and creative angle. If it aligns, we proceed to the plan.</p>
+            </div>
+            <div class="icon" aria-hidden="true">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z" stroke="#ffffff" stroke-width="2"/><circle cx="12" cy="12" r="3" fill="#ffffff"/></svg>
+            </div>
+            <svg class="filler" viewBox="0 0 200 140" fill="none"><rect x="20" y="20" width="160" height="100" rx="22" stroke="#ffffff" stroke-opacity=".5" stroke-dasharray="8 10"/></svg>
+          </div>
+        </section>
+
+        <section class="panel" style="background:var(--paper)">
+          <div class="panel-inner">
+            <div class="txt">
+              <h2>Step 3 — We contact you</h2>
+              <p>We align on deliverables → sign → produce → deliver. One point of contact, clear edit rounds, measurable outcomes.</p>
+            </div>
+            <div class="icon" aria-hidden="true">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M4 4h16v12H7l-3 4V4z" stroke="#7aa6ff" stroke-width="2" stroke-linejoin="round"/></svg>
+            </div>
+            <svg class="filler" viewBox="0 0 200 140" fill="none"><circle cx="70" cy="70" r="54" stroke="#0f1424" stroke-opacity=".22"/></svg>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <!-- REQUEST -->
+  <main id="request" class="view">
+    <div class="wrap">
+      <div class="card pad" style="margin:18px 0;background:linear-gradient(180deg,#fff,#fff7f0)">
+        <h2 style="margin:0 0 6px">Ad Request</h2>
+        <p class="hint">Minimal, easy to scan. Your team sees a clean summary on submission.</p>
+      </div>
+
+      <div class="form-grid">
+        <section class="card pad group">
+          <h3 style="margin:0">Contact</h3>
+          <div class="group">
+            <div class="group"><label for="fullName">Full name*</label><input class="input" id="fullName" required placeholder="e.g., Sara Ahmadi"/></div>
+            <div class="group"><label for="company">Company / Brand</label><input class="input" id="company" placeholder="NovaTech"/></div>
+          </div>
+          <div class="group" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div><label for="email">Email*</label><input type="email" class="input" id="email" required placeholder="you@company.com"/></div>
+            <div><label for="phone">Phone</label><input class="input" id="phone" placeholder="+49 170 1234567"/></div>
+          </div>
+          <div class="group" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div><label for="instagram">Instagram ID</label><input class="input" id="instagram" placeholder="@yourpage"/></div>
+            <div>
+              <label for="gender">Gender*</label>
+              <select id="gender" class="input" required>
+                <option value="" selected disabled>Select</option>
+                <option>Male</option>
+                <option>Female</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label>Preferred contact apps</label>
+            <div class="seg-choices" role="group">
+              <div class="pill"><input id="app-tg" type="checkbox" value="Telegram"><label for="app-tg">Telegram</label></div>
+              <div class="pill"><input id="app-wa" type="checkbox" value="WhatsApp"><label for="app-wa">WhatsApp</label></div>
+              <div class="pill"><input id="app-call" type="checkbox" value="Phone Call"><label for="app-call">Phone Call</label></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px">
+              <input class="input" id="tgHandle" placeholder="Telegram @username (if chosen)" style="display:none">
+              <input class="input" id="waNumber" placeholder="WhatsApp number (if chosen)" style="display:none">
+            </div>
+          </div>
+        </section>
+
+        <section class="card pad group">
+          <h3 style="margin:0">Campaign</h3>
+          <div class="group"><label for="pageDesc">Your page / company (short)</label><textarea id="pageDesc" placeholder="What do you do in 1–2 sentences?"></textarea></div>
+          <div class="group"><label for="moreInfo">Further information</label><textarea id="moreInfo" placeholder="Goals, KPIs, timelines"></textarea></div>
+          <div class="group"><label for="brief">Upload brief / proposal (PDF, DOCX, ZIP)</label><input id="brief" type="file" class="input" accept=".pdf,.doc,.docx,.zip"/></div>
+          <div class="card pad" style="background:#f8fbff;border-color:#dbe7ff">
+            <div class="captcha"><span id="captchaQ"></span><input class="input" id="captchaA" placeholder="Answer" style="max-width:140px"><button class="btn" type="button" id="capRefresh">↻</button><span class="hint">Human check (replace with hCaptcha at backend)</span></div>
+            <div id="err_captcha" class="hint" style="color:#c03a3a;display:none">Incorrect answer.</div>
+          </div>
+          <label class="seg-choices" style="align-items:center"><input type="checkbox" id="agree"><span>I agree to the <a href="#" id="openTerms">Ad Request Terms</a>.</span></label>
+          <div id="err_agree" class="hint" style="color:#c03a3a;display:none">You must agree to proceed.</div>
+          <div style="display:flex;gap:10px;align-items:center">
+            <button class="btn primary" id="submitBtn">Send Request</button>
+            <button class="btn" data-route="#/home">Cancel</button>
+          </div>
+          <div id="formSuccess" class="card pad" style="display:none;background:#f0fff6;border-color:#c9f0da"><strong>Thanks — request received.</strong><div class="hint">(Demo logs to console; backend will store/send.)</div></div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <!-- ABOUT -->
+  <main id="about" class="view">
+    <div class="wrap">
+      <section class="about-grid">
+        <div class="card pad">
+          <h2 style="margin-top:0">About Arian</h2>
+          <p>I make science & tech feel clear, visual, and useful. If your product can stand on evidence and a great story, we can build something memorable.</p>
+          <div class="cards" style="grid-template-columns:repeat(3,1fr)">
+            <div class="card pad" style="text-align:center"><div style="font-weight:800;font-size:22px;color:var(--brand)">360K+</div><div class="hint">Instagram audience</div></div>
+            <div class="card pad" style="text-align:center"><div style="font-weight:800;font-size:22px;color:#1c7d4f">Top Geo</div><div class="hint">DE • IR • Global</div></div>
+            <div class="card pad" style="text-align:center"><div style="font-weight:800;font-size:22px;color:var(--blue)">STEM</div><div class="hint">Science/Tech niche</div></div>
+          </div>
+          <div class="card pad" style="background:linear-gradient(180deg,#fff,#fff2e6);border-left:6px solid var(--brand)">
+            <strong>Creative approach</strong>
+            <p class="hint" style="margin:.4rem 0 0">Hook → Evidence → Visual analogy → CTA. Ethical, data-first advertising only.</p>
+          </div>
+        </div>
+        <aside class="card pad">
+          <h3 style="margin-top:0">Gallery</h3>
+          <p class="hint">Upload preview images (client-side only here; real uploads handled by backend).</p>
+          <div class="upload">
+            <input type="file" id="imgInput" accept="image/*" multiple />
+            <div id="gallery" class="gallery">
+              <div class="ph">Add images</div>
+              <div class="ph">Logos</div>
+              <div class="ph">Frames</div>
+            </div>
+          </div>
+          <hr style="border:0;border-top:1px solid var(--edge);margin:18px 0"/>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <a class="btn pill" id="igLink2" target="_blank" rel="noopener">Instagram</a>
+            <a class="btn pill" id="ytLink2" target="_blank" rel="noopener">YouTube</a>
+            <a class="btn pill" href="mailto:hello@example.com">Email</a>
+          </div>
+        </aside>
+      </section>
+      <div class="wrap" style="padding:0;margin-top:18px">
+        <div class="card pad">
+          <h3 style="margin:0 0 8px">Working together</h3>
+          <div class="steps">
+            <div class="step card pad reveal"><div class="n">1</div><h4>Brief</h4><p>Share goals, constraints, and proof points.</p></div>
+            <div class="step card pad reveal"><div class="n">2</div><h4>Design</h4><p>Script, visuals, and timeline aligned.</p></div>
+            <div class="step card pad reveal"><div class="n">3</div><h4>Delivery</h4><p>Approve → publish → measure impact.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Terms dialog -->
+  <dialog id="termsDlg" style="max-width:760px;border:1px solid var(--edge);border-radius:16px">
+    <div class="wrap" style="padding:20px">
+      <h2 style="margin-top:0">Ad Request Terms</h2>
+      <ul>
+        <li>Submission ≠ acceptance; I reply when there is strong fit.</li>
+        <li>Claims must be accurate and evidence-backed.</li>
+        <li>Assets must be owned or licensed by the brand.</li>
+        <li>Deliverables, usage rights, and timelines in written agreement.</li>
+      </ul>
+      <div style="display:flex;justify-content:flex-end"><button class="btn" onclick="document.getElementById('termsDlg').close()">Close</button></div>
+    </div>
+  </dialog>
+
+  <footer class="wrap">
+    <div>© <span id="year"></span> Arian</div>
+    <div><button class="btn pill" data-route="#/request">Start request</button></div>
+  </footer>
+
+  <!-- Atom GIF (fixed at bottom-right) -->
+  <img src="atom GIF.gif" alt="Atom animation" class="atom-gif" />
+
+  <script>
+    const $ = (q)=>document.querySelector(q);
+    const $$ = (q)=>document.querySelectorAll(q);
+
+    // ROUTER
+    function route(){
+      const hash = location.hash || '#/home';
+      $$('.view').forEach(v=>v.classList.remove('active'));
+      if(hash.includes('request')) $('#request').classList.add('active');
+      else if(hash.includes('about')) $('#about').classList.add('active');
+      else $('#home').classList.add('active');
+      window.scrollTo({top:0,behavior:'instant'});
+    }
+    window.addEventListener('hashchange', route);
+    document.addEventListener('click', (e)=>{
+      const btn = e.target.closest('[data-route]');
+      if(btn){ location.hash = btn.getAttribute('data-route'); }
+    });
+    route();
+
+    // Set links
+    const ig = 'https://instagram.com/';
+    const yt = 'https://youtube.com/';
+    ['igLink','igLink2'].forEach(id=>{ const el = document.getElementById(id); if(el) el.href = ig; });
+    ['ytLink','ytLink2'].forEach(id=>{ const el = document.getElementById(id); if(el) el.href = yt; });
+
+    // Background patterns fade-in (all three)
+    window.addEventListener('load', ()=>{
+      document.getElementById('bgL')?.classList.add('on');
+      document.getElementById('bgR')?.classList.add('on');
+      document.getElementById('bgFull')?.classList.add('on');
+    });
+
+    // How it works chip → scroll to flow
+    const chip = document.getElementById('chipFlow');
+    chip?.addEventListener('click', ()=>{ document.getElementById('flow').scrollIntoView({behavior:'smooth'});});
+
+    // Blur hero while flow is in view and switch arrow color
+    const flow = document.getElementById('flow');
+    const orangePanel = ()=>document.querySelector('.panel.orange');
+    const blurIO = new IntersectionObserver((ents)=>{
+      ents.forEach(ent=>{ document.body.classList.toggle('flowing', ent.isIntersecting); });
+    }, {threshold:0.1});
+    blurIO.observe(flow);
+
+    const colorIO = new IntersectionObserver((ents)=>{
+      ents.forEach(ent=>{
+        if(ent.isIntersecting) document.body.classList.add('on-orange');
+        else document.body.classList.remove('on-orange');
+      });
+    }, {threshold:0.51});
+    if(orangePanel()) colorIO.observe(orangePanel());
+
+    // Animate the continuous arrow drawing based on scroll
+    const path = document.getElementById('route');
+    let pathLen = 0;
+    function setupPath(){
+      if(!path) return;
+      pathLen = path.getTotalLength();
+      path.style.strokeDasharray = pathLen;
+      path.style.strokeDashoffset = pathLen;
+      onScroll();
+    }
+    function onScroll(){
+      const rect = flow.getBoundingClientRect();
+      const vh = window.innerHeight || 1;
+      const total = rect.height + vh;
+      const seen = Math.min(Math.max(vh - rect.top, 0), total);
+      const prog = seen / total;
+      const draw = pathLen * prog;
+      path.style.strokeDashoffset = Math.max(pathLen - draw, 0);
+    }
+    document.addEventListener('scroll', onScroll, {passive:true});
+    window.addEventListener('resize', setupPath);
+    setupPath();
+
+    // Scroll reveal utility for About page tiles
+    const io = new IntersectionObserver((ents)=>{
+      ents.forEach(ent=>{ if(ent.isIntersecting) ent.target.classList.add('on'); });
+    },{threshold:.2});
+    $$('.reveal').forEach(el=>io.observe(el));
+
+    // i want to fucking add the arrow
+  
+
+    // Contact app conditional inputs (Request page)
+    const tg = document.getElementById('app-tg');
+    const wa = document.getElementById('app-wa');
+    const tgHandle = document.getElementById('tgHandle');
+    const waNumber = document.getElementById('waNumber');
+    const toggle = (el, field)=> field && (field.style.display = el?.checked ? '' : 'none');
+    tg?.addEventListener('change', ()=>toggle(tg,tgHandle));
+    wa?.addEventListener('change', ()=>toggle(wa,waNumber));
+
+    // Placeholder math captcha (Request page)
+    let capA=0, capB=0; 
+    function genCaptcha(){ capA = 1+Math.floor(Math.random()*9); capB = 1+Math.floor(Math.random()*9); document.getElementById('captchaQ').textContent = `Human check: ${capA} + ${capB} = ?`; document.getElementById('captchaA').value=''; }
+    document.getElementById('capRefresh')?.addEventListener('click', genCaptcha);
+    genCaptcha();
+
+    // Terms link (Request page)
+    document.getElementById('openTerms')?.addEventListener('click', (e)=>{e.preventDefault(); document.getElementById('termsDlg').showModal();});
+
+    // Form submit (demo)
+    document.getElementById('submitBtn')?.addEventListener('click', (e)=>{
+      e.preventDefault();
+      const name = document.getElementById('fullName').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const gender = document.getElementById('gender').value;
+      const agree = document.getElementById('agree').checked;
+      const emOK = /^[^\s@]+@[^^\s@]+\.[^\s@]+$/.test(email);
+      const capAns = parseInt(document.getElementById('captchaA').value,10);
+      let ok = name && emOK && gender && agree && (capAns === (capA+capB));
+      document.getElementById('err_agree').style.display = agree ? 'none' : 'block';
+      document.getElementById('err_captcha').style.display = capAns === (capA+capB) ? 'none' : 'block';
+      if(!ok) return;
+      const payload = {
+        fullName:name, company:document.getElementById('company').value.trim(), email, phone:document.getElementById('phone').value.trim(),
+        instagram:document.getElementById('instagram').value.trim(), gender,
+        apps: Array.from(document.querySelectorAll('#request input[type="checkbox"]:checked')).map(i=>i.nextElementSibling.textContent.trim()),
+        telegram: tg?.checked ? tgHandle.value.trim() : '',
+        whatsapp: wa?.checked ? waNumber.value.trim() : '',
+        pageDesc: document.getElementById('pageDesc').value.trim(), moreInfo: document.getElementById('moreInfo').value.trim(),
+        briefName: document.getElementById('brief').files[0]?.name || ''
+      };
+      console.log('Ad Request →', payload);
+      document.getElementById('formSuccess').style.display='block';
+    });
+
+    // Client-side gallery preview (About)
+    const imgInput = document.getElementById('imgInput');
+    const gallery = document.getElementById('gallery');
+    imgInput?.addEventListener('change', ()=>{
+      gallery.innerHTML='';
+      Array.from(imgInput.files).slice(0,9).forEach(file=>{
+        const url = URL.createObjectURL(file);
+        const img = new Image(); img.src = url; img.alt = file.name; img.style.width='100%'; img.style.borderRadius='12px'; img.style.border='1px solid var(--edge)';
+        const cell = document.createElement('div'); cell.appendChild(img); gallery.appendChild(cell);
+      });
+    });
+
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
